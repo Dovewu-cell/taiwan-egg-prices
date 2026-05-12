@@ -1,0 +1,16 @@
+{
+  "name": "taiwan-egg-prices",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Daily Taiwan egg price snapshots scraped from chinyieggs.com, served via GitHub + jsDelivr CDN.",
+  "scripts": {
+    "fetch": "node scripts/fetch.mjs"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
