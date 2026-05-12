@@ -69,7 +69,7 @@ fetch('https://cdn.jsdelivr.net/gh/Dovewu-cell/taiwan-egg-prices@main/data/2026.
 
 ## 排程
 
-GitHub Actions 每日台灣時間 09:30（UTC 01:30）自動執行 `scripts/fetch.mjs`，commit 回 repo。
+GitHub Actions 每日台灣時間 12:00（UTC 04:00）自動執行 `scripts/fetch.mjs`，commit 回 repo。
 
 手動觸發：Actions 頁面 → `Daily Egg Price Fetch` → Run workflow，或：
 

@@ -2,8 +2,8 @@ name: Daily Egg Price Fetch
 
 on:
   schedule:
-    # 每日台灣時間 09:30 (UTC 01:30)
-    - cron: '30 1 * * *'
+    # 每日台灣時間 12:00 (UTC 04:00)
+    - cron: '0 4 * * *'
   workflow_dispatch:
 
 permissions:
