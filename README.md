@@ -35,6 +35,12 @@
 
 `{YEAR}.json` 為上面物件的陣列，按 `date` 升冪排列。
 
+休市日（例如農曆春節）會多一個 `closed: true` 旗標，且價格為 `null`：
+
+```json
+{ "date": "2026-02-17", "closed": true, "prices": { "雞蛋": { "台北": { "批發": null, "大運輸": null }, ... } } }
+```
+
 ## 使用範例
 
 ### Node.js / Express（poultry-farm-zeabur 等）
@@ -72,8 +78,15 @@ gh workflow run daily-fetch.yml
 
 ```bash
 npm install
-npm run fetch
+npm run fetch                                # 抓今天
+npm run backfill -- 1700 1843 2026-01-01     # 回填指定 ID 範圍 + 日期下限
 ```
+
+`backfill` 用法：`node scripts/backfill.mjs [startId] [endId] [minDate] [maxDate]`
+
+- 偵測 302 redirect 自動跳過已刪除的 ID
+- 每筆延遲 500ms，避免打太快
+- 同日期紀錄會被覆寫，可中斷重跑
 
 ## 資料來源
 
