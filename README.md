@@ -8,10 +8,13 @@
 
 | 用途 | URL |
 |------|-----|
-| 最新一日（單筆） | `https://cdn.jsdelivr.net/gh/Dovewu-cell/taiwan-egg-prices/data/latest.json` |
-| 整年（陣列） | `https://cdn.jsdelivr.net/gh/Dovewu-cell/taiwan-egg-prices/data/{YEAR}.json` |
+| 最新一日（單筆） | `https://cdn.jsdelivr.net/gh/Dovewu-cell/taiwan-egg-prices@main/data/latest.json` |
+| 整年（陣列） | `https://cdn.jsdelivr.net/gh/Dovewu-cell/taiwan-egg-prices@main/data/{YEAR}.json` |
+| 瀏覽器格式化檢視 | `https://github.com/Dovewu-cell/taiwan-egg-prices/blob/main/data/latest.json` |
+| GitHub raw（無 CDN） | `https://raw.githubusercontent.com/Dovewu-cell/taiwan-egg-prices/main/data/latest.json` |
 
 > jsDelivr 預設快取 12 小時。本資料每日更新一次，CDN 自然過期即可。
+> **必須加 `@main`** — 沒加會在沒 git tag 時觸發 jsDelivr 的 "Failed to fetch version info" 錯誤。
 
 ## JSON Schema
 
@@ -45,21 +48,21 @@
 
 ### Node.js / Express（poultry-farm-zeabur 等）
 ```js
-const r = await fetch('https://cdn.jsdelivr.net/gh/Dovewu-cell/taiwan-egg-prices/data/latest.json');
+const r = await fetch('https://cdn.jsdelivr.net/gh/Dovewu-cell/taiwan-egg-prices@main/data/latest.json');
 const { date, prices } = await r.json();
 const 台中大運輸 = prices['雞蛋']['台中']['大運輸'];
 ```
 
 ### Google Apps Script（payroll-system 等）
 ```js
-const url = 'https://cdn.jsdelivr.net/gh/Dovewu-cell/taiwan-egg-prices/data/latest.json';
+const url = 'https://cdn.jsdelivr.net/gh/Dovewu-cell/taiwan-egg-prices@main/data/latest.json';
 const data = JSON.parse(UrlFetchApp.fetch(url).getContentText());
 const 台中大運輸 = data.prices['雞蛋']['台中']['大運輸'];
 ```
 
 ### 前端純 HTML（feed-sim 等）
 ```js
-fetch('https://cdn.jsdelivr.net/gh/Dovewu-cell/taiwan-egg-prices/data/2026.json')
+fetch('https://cdn.jsdelivr.net/gh/Dovewu-cell/taiwan-egg-prices@main/data/2026.json')
   .then(r => r.json())
   .then(arr => /* 畫趨勢圖 */);
 ```
