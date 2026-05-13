@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>蛋價查詢 · 台中大運輸</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #f5f5f7;
+    --card: #ffffff;
+    --text: #1d1d1f;
+    --muted: #86868b;
+    --border: #d2d2d7;
+    --accent: #f97316;
+    --accent-2: #0ea5e9;
+    --closed: #ef4444;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #000000;
+      --card: #1c1c1e;
+      --text: #f5f5f7;
+      --muted: #98989d;
+      --border: #38383a;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    padding: 16px;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 22px; margin: 8px 0 16px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .today {
+    text-align: center;
+  }
+  .today .date { font-size: 14px; color: var(--muted); margin-bottom: 8px; }
+  .today .prices {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 12px;
+  }
+  .today .label { font-size: 13px; color: var(--muted); }
+  .today .value { font-size: 36px; font-weight: 600; margin-top: 4px; }
+  .today .value.accent { color: var(--accent); }
+  .today .value.accent-2 { color: var(--accent-2); }
+  .today .unit { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .today .closed { color: var(--closed); font-weight: 600; }
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+  .controls label { font-size: 13px; color: var(--muted); }
+  .controls input[type="date"] {
+    font-size: 14px;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--card);
+    color: var(--text);
+  }
+  .presets { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+  .presets button {
+    font-size: 12px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .presets button:hover { background: var(--bg); }
+  .chart-wrap { position: relative; height: 280px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 8px 6px; text-align: right; border-bottom: 1px solid var(--border); }
+  th:first-child, td:first-child { text-align: left; }
+  th { font-size: 12px; color: var(--muted); font-weight: 500; }
+  td.closed { color: var(--closed); }
+  .footer { font-size: 11px; color: var(--muted); text-align: center; margin-top: 16px; }
+  .footer a { color: var(--muted); }
+  .table-wrap { max-height: 360px; overflow-y: auto; }
+  .meta { font-size: 12px; color: var(--muted); margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<h1>🥚 台中大運輸蛋價</h1>
+
+<div class="card today" id="today-card">
+  <div class="date">載入中…</div>
+</div>
+
+<div class="card">
+  <div class="controls">
+    <label>起 <input type="date" id="start-date"></label>
+    <label>迄 <input type="date" id="end-date"></label>
+    <div class="presets">
+      <button data-days="7">近 7 日</button>
+      <button data-days="30">近 30 日</button>
+      <button data-days="90">近 90 日</button>
+      <button data-all="1">全部</button>
+    </div>
+  </div>
+  <div class="meta" id="range-meta"></div>
+</div>
+
+<div class="card">
+  <div class="chart-wrap"><canvas id="chart"></canvas></div>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>日期</th><th>大運輸</th><th>產地價</th></tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="footer">
+  資料來源：<a href="https://tw.chinyieggs.com/" target="_blank">勤億蛋品</a>　|
+  產地價 = 大運輸 − 3　|
+  單位：元/600克/未稅
+</div>
+
+<script>
+const PRICE_OFFSET = 3;
+let chart;
+let allEntries = [];
+
+const fmtPrice = v => (v == null ? '—' : v.toFixed(1));
+
+async function loadData() {
+  const yearsToFetch = new Set();
+  const today = new Date();
+  yearsToFetch.add(today.getFullYear());
+  yearsToFetch.add(today.getFullYear() - 1);
+
+  const merged = [];
+  for (const year of yearsToFetch) {
+    try {
+      const res = await fetch(`/data/${year}.json`, { cache: 'no-store' });
+      if (!res.ok) continue;
+      const arr = await res.json();
+      merged.push(...arr);
+    } catch (_) {}
+  }
+  merged.sort((a, b) => a.date.localeCompare(b.date));
+  allEntries = merged;
+}
+
+function getTaichungLT(entry) {
+  return entry?.prices?.['雞蛋']?.['台中']?.['大運輸'] ?? null;
+}
+
+function renderToday() {
+  const card = document.getElementById('today-card');
+  if (!allEntries.length) {
+    card.innerHTML = '<div class="date">無資料</div>';
+    return;
+  }
+  const latest = allEntries[allEntries.length - 1];
+  const lt = getTaichungLT(latest);
+  const origin = lt == null ? null : lt - PRICE_OFFSET;
+
+  card.innerHTML = `
+    <div class="date">${latest.date}${latest.closed ? '（休市）' : ''}</div>
+    <div class="prices">
+      <div>
+        <div class="label">大運輸</div>
+        <div class="value accent">${lt == null ? '—' : lt.toFixed(1)}</div>
+      </div>
+      <div>
+        <div class="label">產地價</div>
+        <div class="value accent-2">${origin == null ? '—' : origin.toFixed(1)}</div>
+      </div>
+    </div>
+    <div class="unit">元/600克/未稅</div>
+  `;
+}
+
+function filterRange(start, end) {
+  return allEntries.filter(e => e.date >= start && e.date <= end);
+}
+
+function renderTable(rows) {
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = rows.slice().reverse().map(e => {
+    const lt = getTaichungLT(e);
+    const origin = lt == null ? null : lt - PRICE_OFFSET;
+    const cls = e.closed ? 'closed' : '';
+    const ltDisplay = e.closed ? '休市' : fmtPrice(lt);
+    const orDisplay = e.closed ? '休市' : fmtPrice(origin);
+    return `<tr><td>${e.date}</td><td class="${cls}">${ltDisplay}</td><td class="${cls}">${orDisplay}</td></tr>`;
+  }).join('');
+}
+
+function renderChart(rows) {
+  const labels = rows.map(e => e.date);
+  const lt = rows.map(e => getTaichungLT(e));
+  const origin = lt.map(v => v == null ? null : v - PRICE_OFFSET);
+
+  const ctx = document.getElementById('chart').getContext('2d');
+  if (chart) chart.destroy();
+
+  const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+  const grid = isDark ? '#38383a' : '#e5e5e7';
+  const text = isDark ? '#f5f5f7' : '#1d1d1f';
+
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: '大運輸',
+          data: lt,
+          borderColor: '#f97316',
+          backgroundColor: 'rgba(249, 115, 22, 0.1)',
+          tension: 0.2,
+          spanGaps: true,
+        },
+        {
+          label: '產地價',
+          data: origin,
+          borderColor: '#0ea5e9',
+          backgroundColor: 'rgba(14, 165, 233, 0.1)',
+          tension: 0.2,
+          spanGaps: true,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: text } },
+        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.parsed.y == null ? '—' : c.parsed.y.toFixed(1)} 元` } }
+      },
+      scales: {
+        x: { ticks: { color: text, maxTicksLimit: 8 }, grid: { color: grid } },
+        y: { ticks: { color: text, callback: v => v + ' 元' }, grid: { color: grid } }
+      }
+    }
+  });
+}
+
+function render() {
+  const start = document.getElementById('start-date').value;
+  const end = document.getElementById('end-date').value;
+  if (!start || !end) return;
+  const rows = filterRange(start, end);
+  const validDays = rows.filter(e => !e.closed && getTaichungLT(e) != null).length;
+  document.getElementById('range-meta').textContent =
+    `共 ${rows.length} 筆（${validDays} 個交易日）`;
+  renderTable(rows);
+  renderChart(rows);
+}
+
+function setRange(daysBack, all = false) {
+  if (!allEntries.length) return;
+  const lastDate = allEntries[allEntries.length - 1].date;
+  document.getElementById('end-date').value = lastDate;
+  if (all) {
+    document.getElementById('start-date').value = allEntries[0].date;
+  } else {
+    const d = new Date(lastDate);
+    d.setDate(d.getDate() - daysBack + 1);
+    document.getElementById('start-date').value = d.toISOString().slice(0, 10);
+  }
+  render();
+}
+
+async function init() {
+  await loadData();
+  renderToday();
+  setRange(30);
+  document.getElementById('start-date').addEventListener('change', render);
+  document.getElementById('end-date').addEventListener('change', render);
+  document.querySelectorAll('.presets button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.all) setRange(0, true);
+      else setRange(Number(btn.dataset.days));
+    });
+  });
+}
+
+init();
+</script>
+</body>
+</html>
