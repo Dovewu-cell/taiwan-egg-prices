@@ -56,13 +56,16 @@ function parseEggCell(text) {
     // 純「休市」cell（如台南整格只寫休市）
     out['大運輸'] = null;
   }
-  // 產地價 = 大運輸 − 3 元
-  if ('大運輸' in out) {
-    out['產地價'] = out['大運輸'] == null
-      ? null
-      : Number((out['大運輸'] - 3).toFixed(1));
-  }
   return out;
+}
+
+// 產地價只算台中（蛋場實際收購價 = 台中大運輸 − 3）
+function attachOriginPrice(prices) {
+  const taichung = prices?.['雞蛋']?.['台中'];
+  if (!taichung || !('大運輸' in taichung)) return;
+  taichung['產地價'] = taichung['大運輸'] == null
+    ? null
+    : Number((taichung['大運輸'] - 3).toFixed(1));
 }
 
 function tdHtmlToText($, td) {
@@ -123,6 +126,8 @@ export function parseDetail(html, sourceUrl) {
     }
   }
   if (!Object.keys(prices['雞蛋']).length) return null;
+
+  attachOriginPrice(prices);
 
   const record = {
     date,
