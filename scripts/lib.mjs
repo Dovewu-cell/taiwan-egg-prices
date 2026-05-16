@@ -56,6 +56,12 @@ function parseEggCell(text) {
     // 純「休市」cell（如台南整格只寫休市）
     out['大運輸'] = null;
   }
+  // 產地價 = 大運輸 − 3 元
+  if ('大運輸' in out) {
+    out['產地價'] = out['大運輸'] == null
+      ? null
+      : Number((out['大運輸'] - 3).toFixed(1));
+  }
   return out;
 }
 
