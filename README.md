@@ -76,6 +76,8 @@ fetch('https://cdn.jsdelivr.net/gh/Dovewu-cell/taiwan-egg-prices@main/data/2026.
 
 GitHub Actions 每日台灣時間 12:00（UTC 04:00）自動執行 `scripts/fetch.mjs`，commit 回 repo。
 
+`fetch.mjs` 從來源 latest id 往回掃最多 10 筆，遇到 year file 已有的日期就停 — 週末或連假累積的缺漏（例如週一發佈週六/週日/週一三筆）會在下一次排程一併補齊，不必手動觸發 backfill。
+
 手動觸發：Actions 頁面 → `Daily Egg Price Fetch` → Run workflow，或：
 
 ```bash
