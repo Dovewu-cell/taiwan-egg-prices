@@ -4,6 +4,12 @@
 
 仿照 [TaiwanCalendar](https://github.com/ruyut/TaiwanCalendar) 的同步模式 — 各專案需要時 fetch，無需自己排程。
 
+## 線上檢視（人看的網頁）
+
+**🔗 https://eggprice-tw.netlify.app/** — 台中大運輸蛋價走勢圖（`index.html`，Chart.js）。
+
+Netlify 站名 `eggprice-tw`，連 GitHub repo 自動部署（publish dir = `/`，直接 serve 根目錄的 `index.html` 與 `data/`）。
+
 ## 資料 URL
 
 | 用途 | URL |
